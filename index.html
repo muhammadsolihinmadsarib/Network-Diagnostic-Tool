@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Management Dashboard</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --background: #fcfcfd;
+            --surface: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --success-bg: #f0fdf4;
+            --success-text: #15803d;
+            --error-bg: #fef2f2;
+            --error-text: #b91c1c;
+            --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+        }
+
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background-color: var(--background); 
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 60px 20px;
+        }
+
+        .dashboard { 
+            width: 100%;
+            max-width: 850px; 
+            background: var(--surface); 
+            padding: 40px; 
+            border-radius: 8px; 
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .header { 
+            margin-bottom: 32px; 
+        }
+
+        .header h1 { 
+            margin: 0; 
+            font-size: 20px; 
+            font-weight: 600; 
+            letter-spacing: -0.025em;
+        }
+
+        .header p { 
+            margin: 4px 0 0; 
+            color: var(--text-secondary); 
+            font-size: 14px; 
+        }
+
+        .control-panel { 
+            display: flex; 
+            gap: 12px; 
+            margin-bottom: 32px; 
+        }
+
+        .input-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        input { 
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 16px; 
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px; 
+            color: var(--text-primary);
+            transition: border-color 0.15s ease;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+
+        button { 
+            padding: 0 24px; 
+            background-color: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 14px;
+            font-weight: 500; 
+            transition: background-color 0.15s ease;
+            white-space: nowrap;
+        }
+
+        button:hover { background-color: var(--primary-hover); }
+        button:disabled { background-color: var(--text-muted); cursor: not-allowed; }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 0 4px;
+        }
+
+        .status-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        #statusIndicator {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: 500;
+            background: var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .output-container {
+            position: relative;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        pre { 
+            margin: 0;
+            padding: 20px; 
+            height: 350px; 
+            overflow-y: auto; 
+            font-family: var(--font-mono); 
+            font-size: 13px;
+            line-height: 1.6; 
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            background-color: #fafafa;
+        }
+
+        .loading-text {
+            font-size: 13px;
+            color: var(--primary);
+            display: none;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        /* Success/Error States */
+        .status-success { background: var(--success-bg) !important; color: var(--success-text) !important; }
+        .status-error { background: var(--error-bg) !important; color: var(--error-text) !important; }
+
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <div class="header">
+        <h1>Network Diagnostic Tool</h1>
+        <p>System analysis and connectivity verification</p>
+    </div>
+    
+    <div class="control-panel">
+        <div class="input-wrapper">
+            <input type="text" id="target" placeholder="Enter target hostname or IP address" onkeypress="if(event.key==='Enter') runPing()">
+        </div>
+        <button id="btn" onclick="runPing()">Run Analysis</button>
+    </div>
+
+    <div id="loading" class="loading-text">Request in progress...</div>
+
+    <div class="status-container">
+        <span class="status-label">Console Output</span>
+        <span id="statusIndicator">Idle</span>
+    </div>
+
+    <div class="output-container">
+        <pre id="output">System initialized. Awaiting input parameters.</pre>
+    </div>
+</div>
+
+<script>
+    async function runPing() {
+        const targetInput = document.getElementById('target');
+        const target = targetInput.value.trim();
+        const output = document.getElementById('output');
+        const btn = document.getElementById('btn');
+        const loading = document.getElementById('loading');
+        const status = document.getElementById('statusIndicator');
+
+        if (!target) return;
+
+        // Reset UI State
+        btn.disabled = true;
+        loading.style.display = "block";
+        status.innerText = "Analyzing";
+        status.className = "";
+        output.innerText = `Establishing connection to ${target}...\n`;
+
+        try {
+            const response = await fetch(`http://localhost:3000/ping?target=${target}`);
+            const result = await response.text();
+            
+            output.innerText = result;
+            
+            // Logic to determine status color based on text content
+            if (result.toLowerCase().includes("reply from") || result.toLowerCase().includes("bytes of data")) {
+                status.innerText = "Success";
+                status.classList.add("status-success");
+            } else {
+                status.innerText = "Target Unreachable";
+                status.classList.add("status-error");
+            }
+
+        } catch (err) {
+            output.innerText = `Network Error: Unable to reach the local bridge server.\nEnsure server.js is active and port 3000 is available.\n\nTechnical details: ${err.message}`;
+            status.innerText = "Connection Error";
+            status.classList.add("status-error");
+        } finally {
+            btn.disabled = false;
+            loading.style.display = "none";
+        }
+    }
+</script>
+
+</body>
+</html>
